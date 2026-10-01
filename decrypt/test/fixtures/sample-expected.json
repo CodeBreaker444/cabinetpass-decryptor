@@ -1,0 +1,139 @@
+{
+  "password": "correct horse battery staple",
+  "kind": "backup",
+  "kdf": {
+    "alg": "argon2id",
+    "m": 65536,
+    "t": 3,
+    "p": 4
+  },
+  "titles": [
+    "Build server",
+    "Everyday Visa",
+    "GitHub",
+    "Home Wi-Fi",
+    "Passport",
+    "Wedding speech"
+  ],
+  "deletedTitles": [
+    "Old router"
+  ],
+  "groups": [
+    "Web Logins",
+    "Social Media",
+    "Banking & Finance",
+    "Email",
+    "Shopping",
+    "Work",
+    "SSH & Servers",
+    "Wi-Fi",
+    "Identity",
+    "Documents",
+    "Secure Notes"
+  ],
+  "totps": [
+    {
+      "issuer": "Google",
+      "account": "alex@example.com",
+      "secret": "JBSWY3DPEHPK3PXP"
+    }
+  ],
+  "fields": {
+    "GitHub": {
+      "Username": {
+        "kind": "username",
+        "sha256": "a6658157f0df83900a6c8f3b34a7c739c66455d34b142846c96dedcacda08a3c"
+      },
+      "Password": {
+        "kind": "password",
+        "sha256": "fde424320ef7f15ac66f85b5b917da426be1c15aff596fbf71dac90eb8ef6f73"
+      },
+      "Website": {
+        "kind": "url",
+        "sha256": "996e1f714b08e971ec79e3bea686287e66441f043177999a13dbc546d8fe402a"
+      },
+      "One-Time Code": {
+        "kind": "totp",
+        "sha256": "8be5d113c0871ce1a122d68a7dff940ab7b09ad8dfcfd9a85aa5c1acc026279e"
+      }
+    },
+    "Everyday Visa": {
+      "Cardholder Name": {
+        "kind": "text",
+        "sha256": "5a8148bd2f1240305d84ed4e4f234728d07e512ee1d093bebd2a535e2e765998"
+      },
+      "Card Number": {
+        "kind": "hidden",
+        "sha256": "6a7e0e79b018d08c9d1bb20be79999a7778399f7ee17258b3a0d36d4b4a7bec5"
+      },
+      "Expiry Date": {
+        "kind": "text",
+        "sha256": "4c658021550ddeb27f569485f8e2a0111ac343593ac5bf46f94619312bbcae5f"
+      },
+      "Security Code": {
+        "kind": "hidden",
+        "sha256": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+      }
+    },
+    "Build server": {
+      "Username": {
+        "kind": "username",
+        "sha256": "b7bd55c11b781b0ccc43aa6e57f9dadf0660e9d1d4e27e0979ee43a407d454ae"
+      },
+      "Host": {
+        "kind": "text",
+        "sha256": "b10a84a63936a93dcde41c3a32c2f0b33af71e099947a15d858dbd033b04255b"
+      },
+      "Port": {
+        "kind": "number",
+        "sha256": "edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9"
+      },
+      "Private Key": {
+        "kind": "sshKey",
+        "sha256": "4e79d00a5a3e4314f556a03cbdf30449bec37f3c36828cec2444993697ded53b"
+      },
+      "Passphrase": {
+        "kind": "password",
+        "sha256": "f52fbd32b2b3b86ff88ef6c490628285f482af15ddcb29541f94bcf526a3f6c7"
+      },
+      "Public Key": {
+        "kind": "multiline",
+        "sha256": "d28831805cd311b46a9807f1c5b863e754069ef959277c32201fc1bcc4fea156"
+      }
+    },
+    "Home Wi-Fi": {
+      "Network Name": {
+        "kind": "text",
+        "sha256": "5aa6b845a73bd5b115b4185f951d72322e1479f898bb3e2cb304f95fe2bf084e"
+      },
+      "Password": {
+        "kind": "password",
+        "sha256": "7a29663d52b23ee7556e1a8a1029b285eeae3fdf19ba9096734551b1ef87238d"
+      }
+    },
+    "Passport": {
+      "Document Number": {
+        "kind": "hidden",
+        "sha256": "0ba9b917410c974a1f52f8b8f5ba5c7edabe5a19df3e22895be5db6f0378507c"
+      },
+      "Expires On": {
+        "kind": "date",
+        "sha256": "982097052dca661dda3d0224ff017dbf756ef6ed8c30997d370e7a419c5b90ef"
+      }
+    },
+    "Wedding speech": {}
+  },
+  "attachments": {
+    "passport.pdf": {
+      "mime": "application/pdf",
+      "size": 686,
+      "sha256": "0d31fbb5e198911908d179f2096de2bf4072ae62eb4f099197d880a4fe2e87d6"
+    },
+    "id-card.png": {
+      "mime": "image/png",
+      "size": 5138,
+      "sha256": "faa6413f00442642c3b405e3fbe540217dd66d2fc75b0104c2edd2d1cc990dd3"
+    }
+  },
+  "sshFingerprint": "SHA256:UDg+PBc5eKlUHrvCI1GyoVqK4i0vnDhhP7fIUwpbOAs"
+}

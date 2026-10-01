@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>CabinetPass — Encrypted Passwords & Files</title>
+  <meta name="description" content="CabinetPass keeps your passwords, 2FA codes and private documents in one encrypted vault that only you can open. Argon2id + AES-256. Optional sync through your own Google Drive." />
+  <meta name="theme-color" content="#0B5CF0" />
+  <meta property="og:title" content="CabinetPass — Encrypted Passwords & Files" />
+  <meta property="og:description" content="Passwords, 2FA codes and private documents in one encrypted vault. Your master password never leaves your iPhone." />
+  <meta property="og:image" content="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <!-- Replace YOUR_APP_ID once the app is live to show the Smart App Banner in Safari. -->
+  <!-- <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID" /> -->
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'media',
+      theme: {
+        extend: {
+          colors: {
+            brand: { sky: '#0492FA', DEFAULT: '#0B5CF0', deep: '#0948E6', light: '#5CB8FB', night: '#3F8CFF' },
+            ios: { bg: '#F2F2F7', card: '#FFFFFF', dbg: '#000000', dcard: '#1C1C1E', label2: '#8E8E93' },
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'Inter', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+            mono: ['ui-monospace', '"SF Mono"', 'Menlo', 'Consolas', 'monospace'],
+          },
+          boxShadow: {
+            glass: '0 10px 30px rgba(11, 42, 107, 0.14)',
+            phone: '0 40px 80px -20px rgba(9, 72, 230, 0.35), 0 20px 40px -20px rgba(0,0,0,.25)',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root { color-scheme: light dark; }
+    body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    .brand-gradient { background-image: linear-gradient(135deg, #1E8BFF 0%, #0B56F1 55%, #0948E6 100%); }
+    .brand-text { background-image: linear-gradient(135deg, #0492FA 0%, #0B56F1 60%, #0948E6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .glass {
+      background: linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.6) 45%, rgba(255,255,255,.6) 100%);
+      backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: .8px solid rgba(255,255,255,.85);
+    }
+    .nav-glass { background: rgba(242,242,247,.72); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
+    @media (prefers-color-scheme: dark) {
+      .glass { background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(28,28,30,.55) 45%, rgba(28,28,30,.55) 100%); border-color: rgba(255,255,255,.14); }
+      .nav-glass { background: rgba(0,0,0,.6); }
+    }
+    .hero-glow { background: radial-gradient(60% 50% at 50% 30%, rgba(4,146,250,.22) 0%, rgba(11,92,240,.10) 45%, transparent 75%); }
+    .type-cmd { width: 23ch; }
+    details > summary { list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+    details[open] .chev { transform: rotate(90deg); }
+    @media (prefers-reduced-motion: no-preference) {
+      .float { animation: float 6s ease-in-out infinite; }
+      @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+      .ring-anim { animation: ring 30s linear infinite; }
+      .type-cmd { width: 0; animation: type 7s steps(23, end) infinite; }
+      @keyframes type { 0%, 12% { width: 0 } 55%, 100% { width: 23ch } }
+      .swipe-row { animation: swipe 7s ease-in-out infinite; }
+      @keyframes swipe { 0%, 10% { transform: translateX(0) } 25%, 80% { transform: translateX(-84px) } 95%, 100% { transform: translateX(0) } }
+      .caret { animation: caret 1s step-end infinite; }
+      @keyframes caret { 50% { opacity: 0 } }
+      @keyframes ring { from { stroke-dashoffset: 0 } to { stroke-dashoffset: 88 } }
+    }
+  </style>
+</head>
+<body class="bg-ios-bg text-black dark:bg-black dark:text-white font-sans">
+
+  <!-- Nav -->
+  <header class="sticky top-0 z-50 nav-glass border-b border-black/5 dark:border-white/10">
+    <nav class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <a href="#" class="flex items-center gap-2 font-semibold tracking-tight">
+        <img src="logo.png" alt="" class="h-8 w-8" />
+        <span class="hidden text-[17px] min-[360px]:inline">CabinetPass</span>
+      </a>
+      <div class="hidden items-center gap-7 text-sm text-black/70 dark:text-white/70 md:flex">
+        <a href="#features" class="hover:text-black dark:hover:text-white">Features</a>
+        <a href="#security" class="hover:text-black dark:hover:text-white">Security</a>
+        <a href="#sync" class="hover:text-black dark:hover:text-white">Sync</a>
+        <a href="#pricing" class="hover:text-black dark:hover:text-white">Pricing</a>
+        <a href="#faq" class="hover:text-black dark:hover:text-white">FAQ</a>
+        <a href="decrypt/" class="hover:text-black dark:hover:text-white">Vault Viewer</a>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="https://github.com/codebreaker444/cabinetpass-decryptor" rel="noopener" aria-label="Source on GitHub" class="grid h-8 w-8 place-items-center rounded-full text-black/70 hover:bg-black/5 hover:text-black dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"><svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+        <a href="#download" class="whitespace-nowrap rounded-full brand-gradient px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:opacity-90">Coming Soon</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="relative overflow-hidden">
+      <div class="hero-glow pointer-events-none absolute inset-0"></div>
+      <div class="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-14 sm:px-6 md:grid-cols-2 md:pt-24">
+        <div class="min-w-0 text-center md:text-left">
+          <div class="mb-5 inline-flex max-w-full items-center gap-2 rounded-full text-left bg-white/80 px-3 py-1 text-xs font-semibold text-brand shadow-sm ring-1 ring-black/5 dark:bg-white/10 dark:text-brand-night dark:ring-white/10">
+            <span class="h-1.5 w-1.5 rounded-full bg-brand dark:bg-brand-night"></span>
+            Zero-knowledge · No account needed
+          </div>
+          <h1 class="text-[38px] min-[380px]:text-[44px] font-bold leading-[1.05] tracking-tight sm:text-6xl">
+            Your passwords.<br />Your files.<br /><span class="brand-text">Your key.</span>
+          </h1>
+          <p class="mx-auto mt-6 max-w-md text-lg leading-relaxed text-black/60 dark:text-white/60 md:mx-0">
+            CabinetPass keeps passwords, two-factor codes, cards and private documents in one encrypted vault that only you can open.
+          </p>
+          <div id="download" class="mt-8 flex flex-wrap items-center justify-center gap-3 md:justify-start">
+            <!-- Coming soon. Replace each badge with an <a href="https://apps.apple.com/..."> link at launch. -->
+            <div role="img" aria-label="Coming soon to the App Store" title="Coming soon"
+               class="relative inline-flex h-14 shrink-0 cursor-default items-center gap-3 whitespace-nowrap rounded-2xl bg-black px-6 text-white shadow-lg dark:bg-white dark:text-black">
+              <svg viewBox="0 0 24 24" class="h-7 w-7" fill="currentColor" aria-hidden="true"><path d="M16.37 12.64c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.24 2.73 2.2 1.1-.05 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.41 1.2-2.47-.03-.01-2.3-.88-2.32-3.52zM14.2 6.17c.6-.73 1.01-1.75.9-2.77-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.68-.92 2.67.97.08 1.96-.49 2.56-1.21z"/></svg>
+              <span class="text-left leading-tight"><span class="block text-[11px] opacity-80">Coming soon to the</span><span class="block text-xl font-semibold -mt-0.5">App Store</span></span>
+            </div>
+            <div role="img" aria-label="Coming soon to the Mac App Store" title="Coming soon"
+               class="relative inline-flex h-14 shrink-0 cursor-default items-center gap-3 whitespace-nowrap rounded-2xl bg-black px-6 text-white shadow-lg dark:bg-white dark:text-black">
+              <svg viewBox="0 0 24 24" class="h-7 w-7" fill="currentColor" aria-hidden="true"><path d="M16.37 12.64c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.24 2.73 2.2 1.1-.05 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.41 1.2-2.47-.03-.01-2.3-.88-2.32-3.52zM14.2 6.17c.6-.73 1.01-1.75.9-2.77-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.68-.92 2.67.97.08 1.96-.49 2.56-1.21z"/></svg>
+              <span class="text-left leading-tight"><span class="block text-[11px] opacity-80">Coming soon to the</span><span class="block text-xl font-semibold -mt-0.5">Mac App Store</span></span>
+            </div>
+            <a href="#security" class="inline-flex h-14 shrink-0 items-center whitespace-nowrap rounded-2xl px-3 font-semibold text-brand hover:bg-brand/5 dark:text-brand-night dark:hover:bg-white/5">
+              How it’s encrypted <i data-lucide="arrow-right" class="ml-1.5 h-4 w-4"></i>
+            </a>
+          </div>
+          <p class="mt-4 text-xs text-black/40 dark:text-white/40"><span class="font-semibold text-brand dark:text-brand-night">Coming soon</span> for iPhone and Mac. Free with 2 GB of encrypted file storage.</p>
+        </div>
+
+        <!-- App recording (iPhone, demo vault). Loops; paused for reduced motion. -->
+        <div class="flex min-w-0 justify-center md:justify-end">
+          <figure class="float relative w-full max-w-[300px] sm:max-w-[320px]">
+            <div class="rounded-[52px] bg-[#1d1d1f] p-[10px] shadow-phone dark:bg-[#2c2c2e]">
+              <div class="relative overflow-hidden rounded-[44px] bg-ios-bg dark:bg-black" style="aspect-ratio: 600 / 1304">
+                <video id="demo" class="absolute inset-0 h-full w-full object-cover" muted loop playsinline preload="auto"
+                       poster="assets/app-demo-poster.jpg"
+                       aria-label="CabinetPass on iPhone: a login with its 2FA code, live 2FA codes, the password generator, a passport with encrypted photo and PDF attachments, an SSH key, and the Optimize Photos setting">
+                  <source src="assets/app-demo.mp4" type="video/mp4" />
+                  <source src="assets/app-demo.webm" type="video/webm" />
+                </video>
+              </div>
+            </div>
+            <figcaption class="mt-4 flex items-center justify-center gap-2 text-xs text-black/40 dark:text-white/40">
+              <button id="demoToggle" type="button" aria-label="Pause demo video"
+                      class="grid h-7 w-7 place-items-center rounded-full bg-black/5 text-black/60 transition hover:bg-black/10 hover:text-black dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 dark:hover:text-white">
+                <i data-lucide="pause" class="h-3.5 w-3.5" data-icon="pause"></i>
+                <i data-lucide="play" class="hidden h-3.5 w-3.5 translate-x-[1px]" data-icon="play"></i>
+              </button>
+              Recorded in the iPhone app with demo data.
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trust strip -->
+    <section class="border-y border-black/5 bg-white dark:border-white/10 dark:bg-ios-dcard">
+      <div class="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-8 text-center sm:px-6 md:grid-cols-4">
+        <div><div class="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand dark:bg-white/10 dark:text-brand-night"><i data-lucide="lock-keyhole" class="h-5 w-5"></i></div><div class="text-2xl font-bold brand-text">AES-256</div><div class="mt-1 text-sm text-black/50 dark:text-white/50">GCM authenticated encryption</div></div>
+        <div><div class="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand dark:bg-white/10 dark:text-brand-night"><i data-lucide="cpu" class="h-5 w-5"></i></div><div class="text-2xl font-bold brand-text">Argon2id</div><div class="mt-1 text-sm text-black/50 dark:text-white/50">Memory-hard key derivation</div></div>
+        <div><div class="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand dark:bg-white/10 dark:text-brand-night"><i data-lucide="database" class="h-5 w-5"></i></div><div class="text-2xl font-bold brand-text">0 bytes</div><div class="mt-1 text-sm text-black/50 dark:text-white/50">Of your data on our servers</div></div>
+        <div><div class="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand dark:bg-white/10 dark:text-brand-night"><i data-lucide="user-x" class="h-5 w-5"></i></div><div class="text-2xl font-bold brand-text">No account</div><div class="mt-1 text-sm text-black/50 dark:text-white/50">Just a master password</div></div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-semibold uppercase tracking-wider text-brand dark:text-brand-night">Everything in one vault</p>
+        <h2 class="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Built for the things you can’t afford to lose.</h2>
+      </div>
+      <div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- card -->
+        <div class="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="grid h-12 w-12 place-items-center rounded-[14px] bg-[#007AFF] text-white shadow-sm"><i data-lucide="folder-lock" class="h-6 w-6"></i></div>
+          <h3 class="mt-5 text-xl font-semibold">Groups that make sense</h3>
+          <p class="mt-2 leading-relaxed text-black/60 dark:text-white/60">Web Logins, Social Media, Banking &amp; Finance, SSH &amp; Servers, Wi-Fi, Identity, Documents and more — or create your own with custom icons and colours.</p>
+        </div>
+        <div class="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="grid h-12 w-12 place-items-center rounded-[14px] bg-[#FF9500] text-white shadow-sm"><i data-lucide="file-lock-2" class="h-6 w-6"></i></div>
+          <h3 class="mt-5 text-xl font-semibold">Encrypted documents</h3>
+          <p class="mt-2 leading-relaxed text-black/60 dark:text-white/60">Attach PDFs, photos and scans to any item. Each file gets its own key, and they open in-app without leaving an unencrypted copy behind.</p>
+        </div>
+        <div class="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="grid h-12 w-12 place-items-center rounded-[14px] bg-[#5856D6] text-white shadow-sm"><i data-lucide="timer" class="h-6 w-6"></i></div>
+          <h3 class="mt-5 text-xl font-semibold">Built-in authenticator</h3>
+          <p class="mt-2 leading-relaxed text-black/60 dark:text-white/60">Scan a QR code to add two-factor accounts. Live codes with a countdown, and codes saved on a login show up automatically.</p>
+        </div>
+        <div class="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="grid h-12 w-12 place-items-center rounded-[14px] bg-[#AF52DE] text-white shadow-sm"><i data-lucide="wand-sparkles" class="h-6 w-6"></i></div>
+          <h3 class="mt-5 text-xl font-semibold">Password generator</h3>
+          <p class="mt-2 leading-relaxed text-black/60 dark:text-white/60">Random passwords, easy-to-type passphrases or PINs, with strength and entropy at a glance.</p>
+        </div>
+        <div class="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="grid h-12 w-12 place-items-center rounded-[14px] bg-[#FF3B30] text-white shadow-sm"><i data-lucide="shield-check" class="h-6 w-6"></i></div>
+          <h3 class="mt-5 text-xl font-semibold">Security check</h3>
+          <p class="mt-2 leading-relaxed text-black/60 dark:text-white/60">Spot weak, reused and old passwords. Optionally check for breaches — only a short hash fragment is ever sent.</p>
+        </div>
+        <div class="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="grid h-12 w-12 place-items-center rounded-[14px] bg-[#34C759] text-white shadow-sm"><i data-lucide="scan-face" class="h-6 w-6"></i></div>
+          <h3 class="mt-5 text-xl font-semibold">Unlock in a glance</h3>
+          <p class="mt-2 leading-relaxed text-black/60 dark:text-white/60">Face ID or a 6-digit passcode, auto-lock, clipboard auto-clear and a privacy blur in the app switcher.</p>
+        </div>
+        <div class="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="grid h-12 w-12 place-items-center rounded-[14px] bg-[#30B0C7] text-white shadow-sm"><i data-lucide="terminal" class="h-6 w-6"></i></div>
+          <h3 class="mt-5 text-xl font-semibold">SSH keys</h3>
+          <p class="mt-2 leading-relaxed text-black/60 dark:text-white/60">Import OpenSSH, PEM or PuTTY key files. See key type and fingerprint, get the public key filled in, copy a ready-made <code class="font-mono text-[0.9em]">ssh</code> command or export the key file.</p>
+        </div>
+        <div class="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="grid h-12 w-12 place-items-center rounded-[14px] bg-[#1C1C1E] text-white shadow-sm dark:bg-white dark:text-black"><i data-lucide="laptop" class="h-6 w-6"></i></div>
+          <h3 class="mt-5 text-xl font-semibold">iPhone and Mac</h3>
+          <p class="mt-2 leading-relaxed text-black/60 dark:text-white/60">Password AutoFill and widgets on iPhone. Sidebar layout, menu bar and keyboard shortcuts on Mac. One purchase covers both.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Showcase: 2FA + generator -->
+    <section class="bg-white py-24 dark:bg-ios-dcard">
+      <div class="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 md:grid-cols-2">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-wider text-brand dark:text-brand-night">Two-factor, built in</p>
+          <h2 class="mt-3 text-4xl font-bold tracking-tight">Your codes live next to your passwords.</h2>
+          <p class="mt-5 text-lg leading-relaxed text-black/60 dark:text-white/60">Standard TOTP (RFC 6238) with SHA-1, SHA-256 and SHA-512, 6 or 8 digits. Tap a code to copy it — it’s cleared from the clipboard automatically.</p>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3 rounded-2xl bg-ios-bg p-4 dark:bg-black sm:gap-4">
+            <span class="grid h-11 w-11 place-items-center rounded-full bg-black/5 font-semibold dark:bg-white/10">G</span>
+            <div class="min-w-0 flex-1"><div class="text-sm font-semibold">GitHub</div><div class="whitespace-nowrap font-mono text-2xl font-semibold tracking-wider text-brand dark:text-brand-night sm:text-3xl">579 232</div><div class="text-xs text-ios-label2">octocat</div></div>
+            <svg class="h-9 w-9 -rotate-90" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-opacity=".12" stroke-width="3"/><circle class="ring-anim text-brand dark:text-brand-night" cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="88" stroke-dashoffset="30"/></svg>
+          </div>
+          <div class="flex items-center gap-3 rounded-2xl bg-ios-bg p-4 dark:bg-black sm:gap-4">
+            <span class="grid h-11 w-11 place-items-center rounded-full bg-black/5 font-semibold dark:bg-white/10">A</span>
+            <div class="min-w-0 flex-1"><div class="text-sm font-semibold">AWS</div><div class="whitespace-nowrap font-mono text-2xl font-semibold tracking-wider text-brand dark:text-brand-night sm:text-3xl">483 211</div><div class="text-xs text-ios-label2">root@company.com</div></div>
+            <svg class="h-9 w-9 -rotate-90" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-opacity=".12" stroke-width="3"/><circle class="ring-anim text-brand dark:text-brand-night" cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="88" stroke-dashoffset="30"/></svg>
+          </div>
+          <div class="rounded-2xl bg-ios-bg p-5 text-center dark:bg-black">
+            <div class="font-mono text-2xl tracking-wide"><span class="text-[#E0395E]">/]</span>Wx<span class="text-[#E0395E]">;</span>XqPr<span class="text-[#E0395E]">#(&amp;</span>gyY<span class="text-brand dark:text-brand-night">3</span>F<span class="text-[#E0395E]">-[</span><span class="text-brand dark:text-brand-night">6</span></div>
+            <div class="mx-auto mt-4 h-1 max-w-sm rounded-full bg-[#34C759]"></div>
+            <div class="mx-auto mt-2 flex max-w-sm justify-between text-xs"><span class="font-semibold text-[#34C759]">Very Strong</span><span class="text-ios-label2">131 bits</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Coming soon: SSH terminal -->
+    <section id="ssh-terminal" class="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+      <div class="grid items-center gap-12 md:grid-cols-2">
+        <div class="min-w-0">
+          <span class="inline-flex items-center gap-2 rounded-full bg-[#30B0C7]/10 px-3 py-1 text-xs font-semibold text-[#1E8FA3] ring-1 ring-[#30B0C7]/25 dark:text-[#64D2FF]">
+            <i data-lucide="sparkles" class="h-3.5 w-3.5"></i> Coming soon
+          </span>
+          <h2 class="mt-4 text-4xl font-bold tracking-tight">SSH, straight from your vault.</h2>
+          <p class="mt-5 text-lg leading-relaxed text-black/60 dark:text-white/60">Save a server once and connect in one tap. Swipe an item in <b class="font-semibold text-black/80 dark:text-white/80">SSH &amp; Servers</b>, tap <b class="font-semibold text-black/80 dark:text-white/80">Connect</b>, and a terminal opens with your key already unlocked.</p>
+          <ul class="mt-6 space-y-3 text-[15px] text-black/70 dark:text-white/70">
+            <li class="flex gap-3"><i data-lucide="zap" class="mt-0.5 h-5 w-5 shrink-0 text-[#30B0C7]"></i><span><b class="font-semibold text-black dark:text-white">One-tap connect</b> from the list, the item page, a widget or the Mac sidebar.</span></li>
+            <li class="flex gap-3"><i data-lucide="key-round" class="mt-0.5 h-5 w-5 shrink-0 text-[#30B0C7]"></i><span><b class="font-semibold text-black dark:text-white">Keys never leave the vault.</b> Your key is decrypted in memory only for the session and never written to disk.</span></li>
+            <li class="flex gap-3"><i data-lucide="fingerprint" class="mt-0.5 h-5 w-5 shrink-0 text-[#30B0C7]"></i><span><b class="font-semibold text-black dark:text-white">Host verification.</b> Each server’s fingerprint is saved with the item, and you’re warned if it ever changes.</span></li>
+            <li class="flex gap-3"><i data-lucide="keyboard" class="mt-0.5 h-5 w-5 shrink-0 text-[#30B0C7]"></i><span><b class="font-semibold text-black dark:text-white">Shortcut bar</b> for Esc, Tab, Ctrl, arrows and <code class="font-mono">| ~ /</code>, plus saved snippets for commands you run often.</span></li>
+          </ul>
+          <p class="mt-6 text-sm text-black/45 dark:text-white/45">Planned for iPhone and Mac. Preview, not final design.</p>
+        </div>
+
+        <!-- Quick look: list row with Connect action → terminal -->
+        <div class="flex min-w-0 justify-center md:justify-end" aria-label="Preview: swiping an SSH item reveals Connect, which opens a terminal" role="img">
+          <div class="relative w-full max-w-[330px]">
+            <div class="rounded-[48px] bg-[#1d1d1f] p-[9px] shadow-phone dark:bg-[#2c2c2e]">
+              <div class="relative overflow-hidden rounded-[40px] bg-ios-bg dark:bg-black">
+                <!-- list -->
+                <div class="px-4 pb-3 pt-10">
+                  <div class="text-[13px] font-semibold text-brand dark:text-brand-night">‹ Vaults</div>
+                  <div class="mt-1 text-[26px] font-bold tracking-tight">SSH &amp; Servers</div>
+                  <div class="mt-3 overflow-hidden rounded-xl bg-white dark:bg-ios-dcard">
+                    <div class="relative">
+                      <div class="absolute inset-y-0 right-0 flex w-[84px] items-center justify-center gap-1 bg-[#30B0C7] text-[12px] font-semibold text-white"><i data-lucide="terminal" class="h-4 w-4"></i>Connect</div>
+                      <div class="swipe-row relative flex items-center gap-3 bg-white px-3 py-2.5 dark:bg-ios-dcard">
+                        <span class="grid h-9 w-9 place-items-center rounded-[9px] bg-gradient-to-br from-[#4FC3D9] to-[#30B0C7] text-white"><i data-lucide="code-xml" class="h-4 w-4"></i></span>
+                        <div class="min-w-0 flex-1 leading-tight"><div class="text-[15px] font-medium">Build server</div><div class="truncate text-[12px] text-ios-label2">deploy@build.example.com</div></div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3 border-t border-black/5 px-3 py-2.5 dark:border-white/10">
+                      <span class="grid h-9 w-9 place-items-center rounded-[9px] bg-gradient-to-br from-[#7B7AE6] to-[#5856D6] text-white"><i data-lucide="code-xml" class="h-4 w-4"></i></span>
+                      <div class="min-w-0 flex-1 leading-tight"><div class="text-[15px] font-medium">Raspberry Pi</div><div class="truncate text-[12px] text-ios-label2">pi@192.168.1.20</div></div>
+                    </div>
+                  </div>
+                </div>
+                <!-- terminal -->
+                <div class="mx-2 mb-2 overflow-hidden rounded-[30px] bg-[#0B0F14] text-[#D7E0EA]">
+                  <div class="flex items-center gap-2 border-b border-white/10 px-4 py-2.5 text-[12px]">
+                    <span class="h-2 w-2 rounded-full bg-[#34C759]"></span>
+                    <span class="truncate font-semibold">deploy@build.example.com</span>
+                    <span class="ml-auto text-white/40">:2222</span>
+                  </div>
+                  <pre class="overflow-hidden px-4 py-3 font-mono text-[10.5px] leading-[1.55]"><span class="text-white/45">ED25519 host key verified ✓</span>
+<span class="text-[#64D2FF]">deploy@build</span>:<span class="text-[#BF5AF2]">~</span>$ uptime
+ 09:41  up 42 days, load 0.08 0.12 0.10
+<span class="text-[#64D2FF]">deploy@build</span>:<span class="text-[#BF5AF2]">~</span>$ <span class="type-cmd inline-block overflow-hidden whitespace-nowrap align-bottom">git pull &amp;&amp; make deploy</span><span class="caret">▍</span></pre>
+                  <div class="flex gap-1 overflow-hidden border-t border-white/10 bg-white/[.04] px-2 py-2 font-mono text-[11px]">
+                    <span class="rounded-md bg-white/10 px-2 py-1">esc</span><span class="rounded-md bg-white/10 px-2 py-1">tab</span><span class="rounded-md bg-[#30B0C7]/80 px-2 py-1 text-white">ctrl</span><span class="rounded-md bg-white/10 px-2 py-1">|</span><span class="rounded-md bg-white/10 px-2 py-1">~</span><span class="rounded-md bg-white/10 px-2 py-1">/</span><span class="rounded-md bg-white/10 px-2 py-1">↑</span><span class="rounded-md bg-white/10 px-2 py-1">↓</span><span class="rounded-md bg-white/10 px-2 py-1">←</span><span class="rounded-md bg-white/10 px-2 py-1">→</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Security -->
+    <section id="security" class="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-semibold uppercase tracking-wider text-brand dark:text-brand-night">How it’s encrypted</p>
+        <h2 class="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Only your master password opens the vault.</h2>
+        <p class="mt-5 text-lg text-black/60 dark:text-white/60">Encryption happens on your iPhone or Mac. Nothing readable is ever stored or uploaded.</p>
+      </div>
+      <ol class="mx-auto mt-14 grid max-w-5xl gap-4 md:grid-cols-5">
+        <li class="rounded-2xl bg-white p-5 ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="flex items-center justify-between"><span class="grid h-9 w-9 place-items-center rounded-xl bg-brand/10 text-brand dark:bg-white/10 dark:text-brand-night"><i data-lucide="key-round" class="h-[18px] w-[18px]"></i></span><span class="text-xs font-semibold text-ios-label2">1</span></div><div class="mt-2 font-semibold">Master password</div><p class="mt-1 text-sm text-black/55 dark:text-white/55">Known only to you. Never stored or sent.</p>
+        </li>
+        <li class="rounded-2xl bg-white p-5 ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="flex items-center justify-between"><span class="grid h-9 w-9 place-items-center rounded-xl bg-brand/10 text-brand dark:bg-white/10 dark:text-brand-night"><i data-lucide="cpu" class="h-[18px] w-[18px]"></i></span><span class="text-xs font-semibold text-ios-label2">2</span></div><div class="mt-2 font-semibold">Argon2id</div><p class="mt-1 text-sm text-black/55 dark:text-white/55">64 MiB, 3 passes — makes guessing slow and expensive.</p>
+        </li>
+        <li class="rounded-2xl bg-white p-5 ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="flex items-center justify-between"><span class="grid h-9 w-9 place-items-center rounded-xl bg-brand/10 text-brand dark:bg-white/10 dark:text-brand-night"><i data-lucide="lock-keyhole" class="h-[18px] w-[18px]"></i></span><span class="text-xs font-semibold text-ios-label2">3</span></div><div class="mt-2 font-semibold">Vault key</div><p class="mt-1 text-sm text-black/55 dark:text-white/55">A random 256-bit key, wrapped by your master key.</p>
+        </li>
+        <li class="rounded-2xl bg-white p-5 ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="flex items-center justify-between"><span class="grid h-9 w-9 place-items-center rounded-xl bg-brand/10 text-brand dark:bg-white/10 dark:text-brand-night"><i data-lucide="shield-check" class="h-[18px] w-[18px]"></i></span><span class="text-xs font-semibold text-ios-label2">4</span></div><div class="mt-2 font-semibold">AES-256-GCM</div><p class="mt-1 text-sm text-black/55 dark:text-white/55">Seals your vault and each file with its own key.</p>
+        </li>
+        <li class="rounded-2xl brand-gradient p-5 text-white shadow-lg">
+          <div class="flex items-center justify-between"><span class="grid h-9 w-9 place-items-center rounded-xl bg-white/20 text-white"><i data-lucide="database" class="h-[18px] w-[18px]"></i></span><span class="text-xs font-semibold text-white/70">5</span></div><div class="mt-2 font-semibold">Encrypted vault</div><p class="mt-1 text-sm text-white/80">Stored on your device and, if you choose, your Google Drive.</p>
+        </li>
+      </ol>
+      <div class="mx-auto mt-10 grid max-w-5xl gap-4 text-sm sm:grid-cols-3">
+        <div class="rounded-2xl bg-white p-5 ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10"><i data-lucide="shield-alert" class="mb-2 h-5 w-5 text-brand dark:text-brand-night"></i><span class="font-semibold">Tamper-proof.</span> <span class="text-black/55 dark:text-white/55">Authenticated encryption detects any change to your data.</span></div>
+        <div class="rounded-2xl bg-white p-5 ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10"><i data-lucide="refresh-cw" class="mb-2 h-5 w-5 text-brand dark:text-brand-night"></i><span class="font-semibold">Fast password changes.</span> <span class="text-black/55 dark:text-white/55">Only the vault key is re-wrapped; Face ID keeps working.</span></div>
+        <div class="rounded-2xl bg-white p-5 ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10"><i data-lucide="fingerprint" class="mb-2 h-5 w-5 text-brand dark:text-brand-night"></i><span class="font-semibold">Passcode lockout.</span> <span class="text-black/55 dark:text-white/55">After 5 wrong attempts, only the master password works.</span></div>
+      </div>
+      <div class="mx-auto mt-4 flex max-w-5xl flex-col items-start gap-4 rounded-2xl bg-white p-5 ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10 sm:flex-row sm:items-center">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand dark:bg-white/10 dark:text-brand-night"><i data-lucide="code-xml" class="h-5 w-5"></i></span>
+        <div class="min-w-0 flex-1 text-sm"><span class="font-semibold">Don’t trust us — verify.</span> <span class="text-black/55 dark:text-white/55">The open-source Vault Viewer decrypts a backup entirely in your browser, offline, with a separate implementation of the same format.</span></div>
+        <a href="decrypt/" class="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-brand hover:underline dark:text-brand-night">Open Vault Viewer <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
+      </div>
+    </section>
+
+    <!-- Sync -->
+    <section id="sync" class="bg-white py-24 dark:bg-ios-dcard">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div class="mx-auto max-w-2xl text-center">
+          <p class="text-sm font-semibold uppercase tracking-wider text-brand dark:text-brand-night">Sync on your terms</p>
+          <h2 class="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Every device. Your Google Drive.</h2>
+          <p class="mt-5 text-lg text-black/60 dark:text-white/60">Sync is optional. When it’s on, an encrypted copy lives in a private app folder in your own Drive — hidden from the Drive app, readable only with your master password.</p>
+        </div>
+        <div class="mt-14 grid gap-5 md:grid-cols-3">
+          <div class="rounded-3xl bg-ios-bg p-7 dark:bg-black">
+            <div class="flex items-center justify-between"><div class="grid h-10 w-10 place-items-center rounded-full brand-gradient font-semibold text-white">1</div><i data-lucide="cloud" class="h-6 w-6 text-black/30 dark:text-white/30"></i></div>
+            <h3 class="mt-4 text-lg font-semibold">Turn on sync</h3>
+            <p class="mt-2 text-black/60 dark:text-white/60">Settings → Google Drive → sign in. Your encrypted vault uploads.</p>
+          </div>
+          <div class="rounded-3xl bg-ios-bg p-7 dark:bg-black">
+            <div class="flex items-center justify-between"><div class="grid h-10 w-10 place-items-center rounded-full brand-gradient font-semibold text-white">2</div><i data-lucide="smartphone" class="h-6 w-6 text-black/30 dark:text-white/30"></i></div>
+            <h3 class="mt-4 text-lg font-semibold">Add another device</h3>
+            <p class="mt-2 text-black/60 dark:text-white/60">Install CabinetPass → Import Existing Vault → From Google Drive → enter your master password.</p>
+          </div>
+          <div class="rounded-3xl bg-ios-bg p-7 dark:bg-black">
+            <div class="flex items-center justify-between"><div class="grid h-10 w-10 place-items-center rounded-full brand-gradient font-semibold text-white">3</div><i data-lucide="refresh-cw" class="h-6 w-6 text-black/30 dark:text-white/30"></i></div>
+            <h3 class="mt-4 text-lg font-semibold">Stay in sync</h3>
+            <p class="mt-2 text-black/60 dark:text-white/60">Changes merge item by item across devices. Status and any issues show right on the Vaults screen.</p>
+          </div>
+        </div>
+        <p class="mt-8 text-center text-sm text-black/50 dark:text-white/50">Prefer offline? Export an encrypted backup file anytime and restore it on a new iPhone.</p>
+      </div>
+    </section>
+
+    <!-- Privacy -->
+    <section id="privacy" class="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+      <div class="overflow-hidden rounded-[32px] brand-gradient p-10 text-white shadow-phone sm:p-14">
+        <div class="grid items-center gap-10 md:grid-cols-[1fr_auto]">
+          <div>
+            <h2 class="text-4xl font-bold tracking-tight">Data Not Collected.</h2>
+            <p class="mt-4 max-w-xl text-lg text-white/85">No analytics, no ads, no tracking, no account. We don’t run servers that hold your data, so there’s nothing for us to see, sell or lose.</p>
+            <ul class="mt-6 space-y-2 text-white/90">
+              <li class="flex items-start gap-2.5"><i data-lucide="circle-check" class="mt-0.5 h-5 w-5 shrink-0"></i> Your vault stays on your device unless you turn on sync.</li>
+              <li class="flex items-start gap-2.5"><i data-lucide="circle-check" class="mt-0.5 h-5 w-5 shrink-0"></i> Sync stores only encrypted data, in your own Google Drive.</li>
+              <li class="flex items-start gap-2.5"><i data-lucide="circle-check" class="mt-0.5 h-5 w-5 shrink-0"></i> Breach checks send a 5-character hash prefix — never your password.</li>
+            </ul>
+            <a href="privacy.html" class="mt-6 inline-flex items-center gap-1.5 font-semibold text-white hover:underline">Read the Privacy Policy <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
+          </div>
+          <img src="logo.png" alt="" class="mx-auto h-40 w-40 drop-shadow-2xl sm:h-52 sm:w-52" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" class="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-semibold uppercase tracking-wider text-brand dark:text-brand-night">Pricing</p>
+        <h2 class="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Start free. Upgrade when you need more.</h2>
+      </div>
+      <div class="mt-12 grid gap-5 md:grid-cols-3">
+        <div class="flex flex-col rounded-3xl bg-white p-7 ring-1 ring-black/5 dark:bg-ios-dcard dark:ring-white/10">
+          <div class="font-semibold">Free</div>
+          <div class="mt-3 text-4xl font-bold">$0</div>
+          <p class="mt-1 text-sm text-black/50 dark:text-white/50">Forever</p>
+          <ul class="mt-6 space-y-2.5 text-[15px] text-black/70 dark:text-white/70">
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>Unlimited passwords, cards &amp; notes</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>2FA codes, generator &amp; security check</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>Face ID / Touch ID, AutoFill &amp; widgets</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>Google Drive sync across iPhone &amp; Mac</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>2 GB of encrypted files</span></li>
+            <li class="flex gap-2 text-black/30 dark:text-white/30" aria-label="Not included: Unlimited encrypted file storage"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">Unlimited encrypted file storage</span></li>
+            <li class="flex gap-2 text-black/30 dark:text-white/30" aria-label="Not included: Future cloud features"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">Future cloud features</span></li>
+            <li class="flex gap-2 text-black/30 dark:text-white/30" aria-label="Not included: New customisation features"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">New customisation features</span></li>
+            <li class="flex gap-2 text-black/30 dark:text-white/30" aria-label="Not included: Priority email support"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">Priority email support</span></li>
+            <li class="flex gap-2 text-black/30 dark:text-white/30" aria-label="Not included: Pay once — no subscription"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">Pay once — no subscription</span></li>
+            <li class="flex gap-2 text-black/30 dark:text-white/30" aria-label="Not included: Family Sharing"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">Family Sharing</span></li>
+          </ul>
+        </div>
+        <div class="relative flex flex-col rounded-3xl bg-white p-7 ring-2 ring-brand dark:bg-ios-dcard dark:ring-brand-night">
+          <span class="absolute right-5 top-5 rounded-full bg-brand/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-brand dark:bg-white/10 dark:text-brand-night">EVERYTHING NEW</span>
+          <div class="font-semibold">Pro Monthly</div>
+          <div class="mt-3 text-4xl font-bold">$0.99<span class="text-base font-medium text-black/50 dark:text-white/50"> / month</span></div>
+          <p class="mt-1 text-sm text-black/50 dark:text-white/50">Cancel anytime · billed by Apple</p>
+          <ul class="mt-6 space-y-2.5 text-[15px] text-black/70 dark:text-white/70">
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>Unlimited passwords, cards &amp; notes</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>2FA codes, generator &amp; security check</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>Face ID / Touch ID, AutoFill &amp; widgets</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>Google Drive sync across iPhone &amp; Mac</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>2 GB of encrypted files</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>Unlimited encrypted file storage</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>Future cloud features</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>New customisation features</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand dark:text-brand-night"></i><span>Priority email support</span></li>
+            <li class="flex gap-2 text-black/30 dark:text-white/30" aria-label="Not included: Pay once — no subscription"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">Pay once — no subscription</span></li>
+            <li class="flex gap-2 text-black/30 dark:text-white/30" aria-label="Not included: Family Sharing"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">Family Sharing</span></li>
+          </ul>
+        </div>
+        <div class="relative flex flex-col rounded-3xl brand-gradient p-7 text-white shadow-phone">
+          <span class="absolute right-5 top-5 rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-bold tracking-wide">BEST VALUE</span>
+          <div class="font-semibold">Pro Lifetime</div>
+          <div class="mt-3 text-4xl font-bold">$39.99</div>
+          <p class="mt-1 text-sm text-white/75">Pay once, yours forever</p>
+          <ul class="mt-6 space-y-2.5 text-[15px] text-white/90">
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0"></i><span>Unlimited passwords, cards &amp; notes</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0"></i><span>2FA codes, generator &amp; security check</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0"></i><span>Face ID / Touch ID, AutoFill &amp; widgets</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0"></i><span>Google Drive sync across iPhone &amp; Mac</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0"></i><span>2 GB of encrypted files</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0"></i><span>Unlimited encrypted file storage</span></li>
+            <li class="flex gap-2 text-white/40" aria-label="Not included: Future cloud features"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">Future cloud features</span></li>
+            <li class="flex gap-2 text-white/40" aria-label="Not included: New customisation features"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">New customisation features</span></li>
+            <li class="flex gap-2 text-white/40" aria-label="Not included: Priority email support"><i data-lucide="minus" class="mt-0.5 h-4 w-4 shrink-0"></i><span class="line-through decoration-1">Priority email support</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0"></i><span>Pay once — no subscription</span></li>
+            <li class="flex gap-2"><i data-lucide="check" class="mt-0.5 h-4 w-4 shrink-0"></i><span>Family Sharing</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="mt-6 text-center text-xs text-black/40 dark:text-white/40">Prices in USD; local prices are shown in the App Store. Every plan gets app updates and security fixes. Going over 2 GB never locks you out of your existing data.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="mx-auto max-w-3xl px-4 pb-24 sm:px-6">
+      <h2 class="text-center text-4xl font-bold tracking-tight">Questions</h2>
+      <div class="mt-10 divide-y divide-black/5 overflow-hidden rounded-2xl bg-white ring-1 ring-black/5 dark:divide-white/10 dark:bg-ios-dcard dark:ring-white/10">
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What if I forget my master password?<i data-lucide="chevron-right" class="chev h-5 w-5 shrink-0 text-ios-label2 transition"></i></summary>
+          <p class="mt-3 text-black/60 dark:text-white/60">It can’t be recovered — not by you, and not by us. That’s what keeps your vault private. Choose a passphrase of five or more random words and keep a written copy somewhere safe.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Can Google read my passwords?<i data-lucide="chevron-right" class="chev h-5 w-5 shrink-0 text-ios-label2 transition"></i></summary>
+          <p class="mt-3 text-black/60 dark:text-white/60">No. The vault is encrypted on your iPhone before upload. Google stores an encrypted file in a hidden app folder and never has the key.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Can I change my master password?<i data-lucide="chevron-right" class="chev h-5 w-5 shrink-0 text-ios-label2 transition"></i></summary>
+          <p class="mt-3 text-black/60 dark:text-white/60">Yes — Settings → Change Master Password. Your other synced devices pick up the new password automatically.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How do I move from another password manager?<i data-lucide="chevron-right" class="chev h-5 w-5 shrink-0 text-ios-label2 transition"></i></summary>
+          <p class="mt-3 text-black/60 dark:text-white/60">Export a CSV from Chrome, Safari, Bitwarden, 1Password or LastPass, then import it in Settings. Delete the CSV afterwards — it isn’t encrypted.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What happens after 2 GB of files?<i data-lucide="chevron-right" class="chev h-5 w-5 shrink-0 text-ios-label2 transition"></i></summary>
+          <p class="mt-3 text-black/60 dark:text-white/60">Everything you’ve saved stays available — you can still view, edit, copy, sync and fill it, and you can keep adding passwords and notes. To attach more files, upgrade to Pro for $0.99 a month or $39.99 once.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What files can I store?<i data-lucide="chevron-right" class="chev h-5 w-5 shrink-0 text-ios-label2 transition"></i></summary>
+          <p class="mt-3 text-black/60 dark:text-white/60">PDFs, photos, camera scans and common documents up to 50 MB each. Every file is encrypted with its own key.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Can I check the encryption myself?<i data-lucide="chevron-right" class="chev h-5 w-5 shrink-0 text-ios-label2 transition"></i></summary>
+          <p class="mt-3 text-black/60 dark:text-white/60">Yes. The file format is documented and the <a href="decrypt/" class="text-brand hover:underline dark:text-brand-night">Vault Viewer</a> is open source on <a href="https://github.com/codebreaker444/cabinetpass-decryptor" rel="noopener" class="text-brand hover:underline dark:text-brand-night">GitHub</a>. It decrypts an exported backup offline in your browser, using code written separately from the app.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">When is it available?<i data-lucide="chevron-right" class="chev h-5 w-5 shrink-0 text-ios-label2 transition"></i></summary>
+          <p class="mt-3 text-black/60 dark:text-white/60">CabinetPass is coming soon to the App Store for iPhone and the Mac App Store. One purchase unlocks Pro on both.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-black/5 dark:border-white/10">
+    <div class="mx-auto grid max-w-6xl gap-8 px-4 py-12 text-sm text-black/50 dark:text-white/50 sm:grid-cols-[1.4fr_1fr_1fr_1fr] sm:px-6">
+      <div>
+        <div class="flex items-center gap-2 font-semibold text-black dark:text-white"><img src="logo.png" alt="" class="h-6 w-6" />CabinetPass</div>
+        <p class="mt-3 max-w-xs">Built by Govardhan Chitrada, an independent developer and Certified Ethical Hacker.</p>
+        <p class="mt-3">© <span id="year">2026</span> Govardhan Chitrada</p>
+      </div>
+      <div>
+        <div class="font-semibold text-black dark:text-white">Product</div>
+        <ul class="mt-3 space-y-2">
+          <li><a href="#features" class="hover:text-black dark:hover:text-white">Features</a></li>
+          <li><a href="#pricing" class="hover:text-black dark:hover:text-white">Pricing</a></li>
+          <li><a href="#download" class="hover:text-black dark:hover:text-white">Download</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="font-semibold text-black dark:text-white">Open source</div>
+        <ul class="mt-3 space-y-2">
+          <li><a href="decrypt/" class="hover:text-black dark:hover:text-white">Vault Viewer</a></li>
+          <li><a href="https://github.com/codebreaker444/cabinetpass-decryptor/blob/main/decrypt/FORMAT.md" rel="noopener" class="hover:text-black dark:hover:text-white">File format</a></li>
+          <li><a href="https://github.com/codebreaker444/cabinetpass-decryptor" rel="noopener" class="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="font-semibold text-black dark:text-white">Legal &amp; contact</div>
+        <ul class="mt-3 space-y-2">
+          <li><a href="privacy.html" class="hover:text-black dark:hover:text-white">Privacy Policy</a></li>
+          <li><a href="terms.html" class="hover:text-black dark:hover:text-white">Terms of Service</a></li>
+          <li><a href="mailto:govardhanchitrada@gmail.com" class="inline-flex items-center gap-1.5 [overflow-wrap:anywhere] hover:text-black dark:hover:text-white"><i data-lucide="mail" class="h-4 w-4 shrink-0"></i>Contact</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    // Demo video: play while on screen, pause when scrolled away or the tab is hidden.
+    // Browsers may refuse or silently pause muted autoplay (power saving, background
+    // tabs), so playback is driven here instead of relying on the autoplay attribute.
+    (() => {
+      const video = document.getElementById('demo');
+      const toggle = document.getElementById('demoToggle');
+      if (!video || !toggle) return;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let userPaused = reduceMotion; // reduced motion: start paused on the poster
+      let onScreen = false;
+      const render = () => {
+        const playing = !video.paused;
+        toggle.setAttribute('aria-label', playing ? 'Pause demo video' : 'Play demo video');
+        toggle.querySelector('[data-icon="pause"]').classList.toggle('hidden', !playing);
+        toggle.querySelector('[data-icon="play"]').classList.toggle('hidden', playing);
+      };
+      const sync = () => {
+        if (!userPaused && onScreen && !document.hidden) {
+          video.play().catch(() => render()); // refused: show the play button
+        } else {
+          video.pause();
+        }
+      };
+      video.addEventListener('play', render);
+      video.addEventListener('pause', render);
+      toggle.addEventListener('click', () => {
+        userPaused = !video.paused;
+        if (userPaused) video.pause(); else video.play().catch(() => {});
+      });
+      new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; sync(); }, { threshold: 0.25 }).observe(video);
+      document.addEventListener('visibilitychange', sync);
+      render();
+    })();    lucide.createIcons({ attrs: { 'stroke-width': 1.9 } });
+  </script>
+</body>
+</html>

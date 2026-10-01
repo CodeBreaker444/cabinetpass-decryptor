@@ -1,0 +1,21 @@
+{
+  "name": "cabinetpass-decryptor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Open-source, offline viewer and reference decryptor for CabinetPass vault backups.",
+  "license": "MIT",
+  "author": "Govardhan Chitrada <govardhanchitrada@gmail.com>",
+  "homepage": "https://github.com/codebreaker444/cabinetpass-decryptor",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codebreaker444/cabinetpass-decryptor.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node decrypt/test/run-tests.cjs",
+    "verify": "node decrypt/test/verify-node.cjs",
+    "serve": "python3 -m http.server 8765"
+  }
+}

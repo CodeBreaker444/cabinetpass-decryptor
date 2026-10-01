@@ -1,0 +1,25 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+      - name: Vendored hash-wasm matches npm
+        run: |
+          curl -sSL https://registry.npmjs.org/hash-wasm/-/hash-wasm-4.12.0.tgz | tar -xzO package/dist/argon2.umd.min.js > /tmp/upstream.js
+          cmp /tmp/upstream.js decrypt/vendor/hash-wasm-argon2.umd.min.js

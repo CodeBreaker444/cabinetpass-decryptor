@@ -1,0 +1,6 @@
+.DS_Store
+node_modules/
+*.log
+# Never commit real backups. Only the generated sample belongs here.
+*.cpv
+!decrypt/test/fixtures/sample-backup.cpv
