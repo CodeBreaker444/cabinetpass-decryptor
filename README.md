@@ -63,9 +63,16 @@ check the encryption yourself:
    and enter the password `correct horse battery staple`.
 
 To view your own data, export a backup in the app (**Settings › Export
-Encrypted Backup**) and open that file instead. You can also use
-`vault.cpv` from the CabinetPass folder in Google Drive, which contains
-items but no files.
+Encrypted Backup**) and open that file instead. A backup is a single file
+holding your encrypted vault and all your encrypted attachments.
+
+> [!NOTE]
+> Google Drive sync uploads everything too: `vault.cpv` plus one encrypted
+> `att_<id>` file per attachment. They live in Drive's hidden app-data
+> folder, which only CabinetPass can read, so they can't be downloaded from
+> drive.google.com. The exported backup is the way to get your data out.
+> The viewer also opens a bare `vault.cpv` (items without files) if you
+> have one, for example from the app's local storage.
 
 > [!TIP]
 > For maximum assurance, turn off Wi-Fi before opening your own backup.
@@ -123,7 +130,7 @@ Node's built-in test runner. The suite checks:
 | Sample backup | A backup exported by the real app decrypts to the expected items, groups, 2FA accounts, field values (by SHA-256), attachments (by SHA-256) and SSH key fingerprint. |
 | Wrong password | It is rejected with "Incorrect master password." |
 | Tampering | Flipping one byte of the vault or of a file, or swapping two files or keys, fails authentication. |
-| Bare `vault.cpv` | The Google Drive vault file opens on its own, without attachments. |
+| Bare `vault.cpv` | The vault file alone (without the attachment files) still opens: items, 2FA and notes. |
 | Bad input | Non-vault files, unknown versions and unknown KDFs are refused. |
 | TOTP | All RFC 6238 test vectors pass for SHA-1, SHA-256 and SHA-512. |
 
