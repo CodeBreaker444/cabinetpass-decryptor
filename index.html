@@ -127,12 +127,32 @@
               How it’s encrypted <i data-lucide="arrow-right" class="ml-1.5 h-4 w-4"></i>
             </a>
           </div>
-          <p class="mt-4 text-xs text-black/40 dark:text-white/40"><span class="font-semibold text-brand dark:text-brand-night">Coming soon</span> for iPhone and Mac. Free with 2 GB of encrypted file storage.</p>
+          <div class="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm font-medium text-black/60 dark:text-white/60 md:justify-start">
+            <span class="inline-flex items-center gap-1.5"><i data-lucide="smartphone" class="h-4 w-4"></i>iPhone</span>
+            <span class="inline-flex items-center gap-1.5"><i data-lucide="laptop" class="h-4 w-4"></i>Mac</span>
+            <span class="inline-flex items-center gap-1.5"><i data-lucide="refresh-cw" class="h-4 w-4"></i>One purchase, synced</span>
+          </div>
+          <p class="mt-3 text-xs text-black/40 dark:text-white/40"><span class="font-semibold text-brand dark:text-brand-night">Coming soon</span> to the App Store and Mac App Store. Free with 2 GB of encrypted file storage.</p>
         </div>
 
-        <!-- App recording (iPhone, demo vault). Loops; paused for reduced motion. -->
-        <div class="flex min-w-0 justify-center md:justify-end">
-          <figure class="float relative w-full max-w-[300px] sm:max-w-[320px]">
+        <!-- Mac app (static screenshot, demo data) with the iPhone recording in front. -->
+        <div class="relative mx-auto w-full min-w-0 max-w-[560px] md:mr-0">
+          <div class="absolute left-0 top-0 w-[94%] select-none">
+            <div class="overflow-hidden rounded-[12px] bg-[#ececec] shadow-[0_30px_80px_-20px_rgba(9,72,230,0.35),0_18px_40px_-18px_rgba(0,0,0,0.35)] ring-1 ring-black/10 dark:bg-[#2a2a2c] dark:ring-white/15">
+              <div class="flex h-6 items-center gap-1.5 border-b border-black/10 px-2.5 sm:h-7 sm:gap-2 sm:px-3 dark:border-white/10">
+                <span class="h-2.5 w-2.5 rounded-full bg-[#FF5F57] sm:h-3 sm:w-3"></span><span class="h-2.5 w-2.5 rounded-full bg-[#FEBC2E] sm:h-3 sm:w-3"></span><span class="h-2.5 w-2.5 rounded-full bg-[#28C840] sm:h-3 sm:w-3"></span>
+                <span class="ml-1.5 text-[10px] font-semibold text-black/50 sm:text-[11px] dark:text-white/50">CabinetPass for Mac</span>
+              </div>
+              <picture>
+                <source srcset="assets/mac-dark.jpg" media="(prefers-color-scheme: dark)" />
+                <img src="assets/mac-light.jpg" width="1400" height="902" decoding="async"
+                     alt="CabinetPass for Mac: sidebar with library and groups including SSH and Servers, an item list, and a login with its live 2FA code"
+                     class="block h-auto w-full" />
+              </picture>
+            </div>
+          </div>
+          <!-- App recording (iPhone, demo vault). Loops; paused for reduced motion. -->
+          <figure class="float relative z-10 ml-auto mt-14 w-[48%] max-w-[250px] sm:mt-20 sm:w-[44%]">
             <div class="rounded-[52px] bg-[#1d1d1f] p-[10px] shadow-phone dark:bg-[#2c2c2e]">
               <div class="relative overflow-hidden rounded-[44px] bg-ios-bg dark:bg-black" style="aspect-ratio: 600 / 1304">
                 <video id="demo" class="absolute inset-0 h-full w-full object-cover" muted loop playsinline preload="auto"
@@ -149,7 +169,7 @@
                 <i data-lucide="pause" class="h-3.5 w-3.5" data-icon="pause"></i>
                 <i data-lucide="play" class="hidden h-3.5 w-3.5 translate-x-[1px]" data-icon="play"></i>
               </button>
-              Recorded in the iPhone app with demo data.
+              iPhone recording and Mac screenshot, demo data.
             </figcaption>
           </figure>
         </div>

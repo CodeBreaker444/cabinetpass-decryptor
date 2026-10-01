@@ -163,7 +163,7 @@ drift apart.
 │       ├── verify-node.cjs       command-line decryptor / summariser
 │       └── fixtures/             sample backup + expected values
 ├── index.html                    CabinetPass website (Tailwind via CDN)
-├── assets/                       app-demo.mp4 / .webm / poster (recorded in the iPhone app, demo data)
+├── assets/                       iPhone demo video + poster, Mac screenshots (light/dark); demo data only
 ├── privacy.html, terms.html      privacy policy and terms of service
 ├── logo.png, favicon.png, apple-touch-icon.png
 ├── SECURITY.md                   how to report a vulnerability
