@@ -29,6 +29,13 @@
     vault: 'cabinetpass.vault.v1',
     file: (id) => `cabinetpass.file.v1:${id}`,
   };
+  // Browsers and Node 19+ expose WebCrypto as a global; Node 18 only via node:crypto.
+  const webcrypto = globalThis.crypto && globalThis.crypto.subtle
+    ? globalThis.crypto
+    : typeof require === 'function' ? require('node:crypto').webcrypto : undefined;
+  if (!webcrypto || !webcrypto.subtle) throw new Error('WebCrypto is not available in this environment.');
+  const subtle = webcrypto.subtle;
+
   const NONCE_BYTES = 12;
   const TAG_BYTES = 16;
 
@@ -89,9 +96,9 @@
 
   async function aesGcmDecrypt(blob, keyBytes, aad) {
     if (blob.length < NONCE_BYTES + TAG_BYTES) throw new DecryptError('Encrypted data is truncated.');
-    const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']);
+    const key = await subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']);
     try {
-      const plain = await crypto.subtle.decrypt(
+      const plain = await subtle.decrypt(
         { name: 'AES-GCM', iv: blob.slice(0, NONCE_BYTES), additionalData: enc.encode(aad), tagLength: TAG_BYTES * 8 },
         key,
         blob.slice(NONCE_BYTES), // ciphertext || tag, as WebCrypto expects
@@ -192,8 +199,8 @@
     new DataView(msg.buffer).setUint32(4, counter >>> 0);
     new DataView(msg.buffer).setUint32(0, Math.floor(counter / 2 ** 32));
     const hash = { sha1: 'SHA-1', sha256: 'SHA-256', sha512: 'SHA-512' }[algorithm] || 'SHA-1';
-    const key = await crypto.subtle.importKey('raw', new Uint8Array(bytes), { name: 'HMAC', hash }, false, ['sign']);
-    const h = new Uint8Array(await crypto.subtle.sign('HMAC', key, msg));
+    const key = await subtle.importKey('raw', new Uint8Array(bytes), { name: 'HMAC', hash }, false, ['sign']);
+    const h = new Uint8Array(await subtle.sign('HMAC', key, msg));
     const o = h[h.length - 1] & 0x0f;
     const bin = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
     return String(bin % 10 ** digits).padStart(digits, '0');
