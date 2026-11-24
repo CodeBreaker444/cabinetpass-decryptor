@@ -42,7 +42,8 @@ In WebCrypto: `iv = blob[0:12]`, `data = blob[12:]` (ciphertext‖tag),
 ## Vault envelope (`vault.cpv`)
 
 UTF-8 JSON. This is the file stored on device and as `vault.cpv` in the
-Google Drive app-data folder.
+cloud folder the app syncs to: Google Drive (app-data folder), OneDrive,
+Dropbox or Box. Every provider uses the same file names and contents.
 
 ```json
 {
@@ -68,7 +69,8 @@ UTF-8 bytes of the master password with no normalization. A failed GCM tag
 check on `wrappedKey` means the password is wrong.
 
 The KDF parameters are read from the file, so readers must honour them
-rather than hard-code the defaults.
+rather than hard-code the defaults. The app's default is `m` 65536, `t` 3,
+`p` 4; it can also write a low-memory profile (`m` 19456, `t` 2, `p` 1).
 
 ## Backup bundle (Settings › Export Encrypted Backup)
 
@@ -83,7 +85,7 @@ rather than hard-code the defaults.
 
 The bundle adds no extra encryption: each file is already encrypted. On
 Google Drive, attachments are stored separately as `att_<id>`, holding the
-raw blob bytes.
+raw blob bytes. The same names are used on OneDrive, Dropbox and Box.
 
 ## Vault JSON (decrypted payload)
 
@@ -107,23 +109,44 @@ raw blob bytes.
           "key": "<base64, 32-byte AES key>", "compression": "gzip", "created": "…" }
       ],
       "pwHistory": [ { "v": "old password", "at": "…" } ],
+      "passkeys": [              // only present when the login has passkeys
+        { "id": "<credential ID, base64url>", "rp": "github.com",
+          "uh": "<user handle, base64url>", "key": "<PKCS#8 DER, base64>",
+          "user": "octocat", "name": "The Octocat", "rpName": "GitHub", "alg": -7,
+          "created": "…", "updated": "…", "used": "…",
+          "via": "iPhone", "usedVia": "Chrome on Windows" }
+      ],
       "fav": false,
+      "codePin": true,           // optional: one-time code pinned
+      "color": "blue",           // optional: user-chosen color
       "created": "…", "updated": "…", "used": null,
       "deleted": null            // ISO date when in Recently Deleted
     }
   ],
   "totps": [
     { "id": "…", "issuer": "Google", "account": "me@example.com",
-      "secret": "<base32>", "digits": 6, "period": 30, "alg": "sha1", "updated": "…" }
+      "secret": "<base32>", "digits": 6, "period": 30, "alg": "sha1",
+      "pin": true, "color": "blue",   // both optional
+      "updated": "…" }
   ],
   "generated": [ { "v": "…", "at": "…" } ],
   "tombstones": { "<id>": "<deleted at>" },
+  "receipts": [              // only present when non-empty
+    { "store": "play", "id": "…", "product": "…", "data": "<store receipt>",
+      "sig": "<base64, Play only>", "revoked": true, "refreshed": "…" }
+  ],
   "updated": "…"
 }
 ```
 
 - **`type`** is one of `login`, `card`, `bank`, `note`, `identity`, `wifi`,
   `document`, `ssh`, `custom`. Unknown values should be treated as `custom`.
+- **`passkeys`** (since app 1.2.5) holds WebAuthn passkeys for a login:
+  ES256 (`alg` -7, P-256) only. `key` is the private key as PKCS#8 DER in
+  standard base64 and is a secret. Sync merges passkeys on their own: the
+  newer copy of each passkey (by `updated`) wins, and a credential ID in
+  `tombstones` deletes it. Readers that rewrite entries must keep this key
+  (and any other key they don't know).
 - **Field `kind`** is one of `text`, `username`, `password`, `hidden`,
   `email`, `url`, `phone`, `number`, `date`, `totp`, `multiline`, `sshKey`.
   Unknown values should be treated as `text`.
@@ -142,6 +165,11 @@ raw blob bytes.
   before encryption, so `size` is the stored size.
 - **`tombstones`** record hard-deleted ids for sync merging. They hold no
   user data.
+- **`receipts`** are store purchase receipts (`store` is `play` or
+  `appstore`) that
+  sync Pro status between devices. `sig` is present for Play only and
+  `revoked` only when set. They hold no vault data, but readers that rewrite
+  the vault must keep them.
 
 ## Verify it yourself
 

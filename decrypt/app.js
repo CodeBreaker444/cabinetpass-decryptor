@@ -6,7 +6,9 @@
 (function () {
   'use strict';
   const CP = window.CabinetPassCrypto;
+  const D = window.CabinetPassDrive;
   const $ = (id) => document.getElementById(id);
+  const IDLE_LOCK_MS = 10 * 60 * 1000; // read-only access is often on someone else's computer
 
   const state = {
     imported: null, // { kind, envelope, files }
@@ -18,6 +20,7 @@
     urls: new Set(), // blob: URLs to revoke on lock
     timers: new Set(),
     log: [],
+    drive: null, // { token, attachments: Map<attachmentId, driveFileId> } when opened from Google Drive
   };
 
   // ---------- DOM helpers ----------
@@ -130,6 +133,7 @@
       const bytes = new Uint8Array(await file.arrayBuffer());
       state.imported = CP.parseImport(bytes);
       state.fileName = file.name;
+      state.drive = null; // a chosen backup replaces a Drive download
       const env = state.imported.envelope;
       $('fileName').textContent = file.name;
       $('fileInfo').textContent =
@@ -159,6 +163,49 @@
   // Don't let a stray drop navigate away from the page.
   window.addEventListener('dragover', (e) => e.preventDefault());
   window.addEventListener('drop', (e) => e.preventDefault());
+
+  // ---------- Google Drive (read-only) ----------
+  function setDriveStatus(text, isError) {
+    $('driveInfo').textContent = text;
+    $('driveInfo').style.color = isError ? 'var(--red)' : '';
+  }
+
+  async function openFromDrive(token) {
+    $('err').textContent = '';
+    $('driveBtn').disabled = true;
+    setDriveStatus('Downloading your encrypted vault from Google Drive…');
+    try {
+      const r = await D.fetchVault(token);
+      state.imported = CP.parseImport(r.bytes);
+      state.drive = { token, attachments: r.attachments };
+      state.fileName = 'Google Drive';
+      const env = state.imported.envelope;
+      $('fileName').textContent = 'Vault from Google Drive';
+      $('fileInfo').textContent =
+        `${fmtBytes(r.bytes.length)} · ${r.attachments.size} encrypted file${r.attachments.size === 1 ? '' : 's'} · ` +
+        `synced ${fmtDate(r.modifiedTime || env.updated)}`;
+      setDriveStatus('Connected, read-only. Enter your master password to decrypt.');
+      pw.focus();
+    } catch (e) {
+      state.drive = null;
+      setDriveStatus(e.message || String(e), true);
+    }
+    $('driveBtn').disabled = false;
+    updateGo();
+  }
+
+  if (location.protocol === 'file:') {
+    // Google can't redirect back to a downloaded copy; backups still work.
+    $('driveBox').classList.add('hidden');
+  } else {
+    $('driveBtn').addEventListener('click', () => D.signIn(window));
+    try {
+      const signedIn = D.completeSignIn(window);
+      if (signedIn) openFromDrive(signedIn.token);
+    } catch (e) {
+      setDriveStatus(e.message || String(e), true);
+    }
+  }
 
   pw.addEventListener('input', updateGo);
   pw.addEventListener('keydown', (e) => e.key === 'Enter' && !go.disabled && decrypt());
@@ -197,6 +244,7 @@
       pw.value = '';
       state.data = data;
       showVault();
+      armIdleLock();
     } catch (e) {
       $('err').textContent = e instanceof CP.DecryptError || e instanceof CP.FormatError ? e.message : `Error: ${e.message || e}`;
       $('busy').textContent = '';
@@ -219,7 +267,7 @@
     $('vault').classList.remove('hidden');
     const items = activeEntries();
     const files = items.reduce((n, e) => n + (e.attachments || []).length, 0);
-    $('vaultTitle').textContent = state.fileName;
+    $('vaultTitle').textContent = state.drive ? 'Your vault · Google Drive' : state.fileName;
     $('vaultMeta').textContent = `${items.length} items · ${files} files · ${(state.data.totps || []).length} 2FA accounts · last updated ${fmtDate(state.imported.envelope.updated)}`;
     renderSide();
     renderList();
@@ -383,6 +431,15 @@
     if ((e.attachments || []).length) {
       sections.push(h('div', { class: 'h', text: 'Files' }), h('div', { class: 'group' }, h('div', { class: 'atts' }, ...e.attachments.map(attachmentTile))));
     }
+    if ((e.passkeys || []).length) {
+      // Shown for reference only: the viewer never displays or exports the private key.
+      sections.push(h('div', { class: 'h', text: e.passkeys.length === 1 ? 'Passkey' : 'Passkeys' }),
+        h('div', { class: 'group' }, ...e.passkeys.map((p) => h('div', { class: 'f' },
+          h('div', { class: 'grow' },
+            h('div', { class: 'k', text: p.rp }),
+            h('div', { class: 'v', text: p.user || p.name || '(no user name)' }),
+            h('div', { class: 'muted', text: `Created ${fmtDate(p.created)}${p.via ? ` on ${p.via}` : ''}${p.used ? ` · last used ${fmtDate(p.used)}` : ''}` }))))));
+    }
     if ((e.pwHistory || []).length) {
       sections.push(h('div', { class: 'h', text: 'Password history' }),
         h('div', { class: 'group' }, ...[...e.pwHistory].reverse().map((p) => secretRow(`Changed ${fmtDate(p.at)}`, p.v, { mono: true }))));
@@ -396,10 +453,23 @@
 
   async function getAttachment(a) {
     if (decrypted.has(a.id)) return decrypted.get(a.id);
-    const blob = state.imported.files.get(a.id);
+    let blob = state.imported.files.get(a.id);
     let result;
-    if (!blob) {
-      result = { error: 'Not in this file. Export a backup from the app (Settings › Export Encrypted Backup) to include files.' };
+    if (!blob && state.drive && state.drive.attachments.has(a.id)) {
+      try {
+        blob = await D.fetchAttachment(state.drive.token, state.drive.attachments.get(a.id));
+      } catch (e) {
+        result = { error: e.message || String(e) };
+      }
+    }
+    if (result) {
+      // download failed
+    } else if (!blob) {
+      result = {
+        error: state.drive
+          ? 'This file isn’t in Google Drive yet. Open the app with file sync on (Settings › Google Drive › Include Files).'
+          : 'Not in this file. Export a backup from the app (Settings › Export Encrypted Backup) to include files.',
+      };
     } else {
       try {
         const bytes = await CP.decryptAttachment(a, blob);
@@ -446,6 +516,38 @@
   // 'close' is dispatched async; skip if another preview already reopened it.
   $('preview').addEventListener('close', () => !$('preview').open && $('pvBody').replaceChildren());
 
+  // ---------- CSV export ----------
+  const X = window.CabinetPassExport;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+  $('showExport').addEventListener('click', () => {
+    const s = X.summary(state.data);
+    const left = [
+      s.files ? `${plural(s.files, 'file', 'files')} (download them from each item)` : null,
+      s.passkeys ? `${plural(s.passkeys, 'passkey', 'passkeys')} (a CSV can’t hold them: create new ones on each site)` : null,
+      'password history',
+      'Recently Deleted',
+    ].filter(Boolean);
+    $('exportInfo').textContent =
+      `${plural(s.items, 'item', 'items')}${s.totps ? ` and ${plural(s.totps, '2FA account', '2FA accounts')}` : ''} will be exported. ` +
+      `Details with no column of their own, like card numbers, IDs and SSH keys, are kept as labelled lines in each item’s notes or custom fields. ` +
+      `Not included: ${left.join(', ')}.`;
+    $('export').showModal();
+  });
+  $('exportClose').addEventListener('click', () => $('export').close());
+  $('exportGo').addEventListener('click', () => {
+    const format = document.querySelector('input[name="exportFormat"]:checked').value;
+    const url = URL.createObjectURL(new Blob([X.toCsv(state.data, format)], { type: 'text/csv;charset=utf-8' }));
+    state.urls.add(url);
+    const link = h('a', { href: url, download: X.fileName(format) });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    $('export').close();
+    toast('CSV saved. Delete it after importing.');
+  });
+
   // ---------- Log + lock ----------
   $('showLog').addEventListener('click', () => {
     renderSteps($('logSteps'), state.log, false);
@@ -453,11 +555,24 @@
   });
   $('logClose').addEventListener('click', () => $('log').close());
 
-  function lock() {
+  async function lock() {
     clearTimers();
     state.urls.forEach((u) => URL.revokeObjectURL(u));
-    // Reload discards every decrypted value held by this page.
+    // Reload discards every decrypted value held by this page, including the
+    // Google token. Don't revoke it: that ends the grant for the whole
+    // CabinetPass project and signs out the apps too.
     location.reload();
   }
   $('lock').addEventListener('click', lock);
+
+  // Locks after a few idle minutes, like the app.
+  let idleTimer = null;
+  function armIdleLock() {
+    const reset = () => {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(lock, IDLE_LOCK_MS);
+    };
+    ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'].forEach((t) => window.addEventListener(t, reset, { passive: true }));
+    reset();
+  }
 })();

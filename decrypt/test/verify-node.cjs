@@ -3,24 +3,34 @@
 // and prints a JSON summary (also used by the app's interop test).
 //
 //   node decrypt/test/verify-node.cjs <file.cpv> <master password>
+//
+// With --csv it prints the vault as CSV for another password manager instead
+// (not encrypted: redirect it to a file, import it, then delete it):
+//
+//   node decrypt/test/verify-node.cjs <file.cpv> <master password> --csv [standard|bitwarden]
 'use strict';
 const fs = require('node:fs');
 const { createHash } = require('node:crypto');
 const hashwasm = require('../vendor/hash-wasm-argon2.umd.min.js');
 const CP = require('../cabinetpass-crypto.js');
+const X = require('../export.js');
 
 const argon2id = ({ password, salt, memoryKiB, iterations, parallelism, hashLength }) =>
   hashwasm.argon2id({ password, salt, memorySize: memoryKiB, iterations, parallelism, hashLength, outputType: 'binary' });
 
 async function main() {
-  const [file, password] = process.argv.slice(2);
-  if (!file || password === undefined) {
-    console.error('usage: verify-node.cjs <file.cpv> <master password>');
+  const [file, password, flag, format = 'standard'] = process.argv.slice(2);
+  if (!file || password === undefined || (flag !== undefined && flag !== '--csv') || !X.FORMATS[format]) {
+    console.error('usage: verify-node.cjs <file.cpv> <master password> [--csv [standard|bitwarden]]');
     process.exit(2);
   }
   const imported = CP.parseImport(new Uint8Array(fs.readFileSync(file)));
   const steps = [];
   const { data } = await CP.openVault(imported, password, { argon2id, onStep: (s) => steps.push(s.step) });
+  if (flag === '--csv') {
+    process.stdout.write(X.toCsv(data, format));
+    return;
+  }
 
   const entries = data.entries.filter((e) => !e.deleted);
   const attachments = [];
